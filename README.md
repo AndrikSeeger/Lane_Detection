@@ -5,6 +5,7 @@ In diesem Projekt sollen Spurmarkierungen in zwei bestehenden Datensätzen erkan
 
 Das Projekt wurde mit Anaconda und OpenCV als Jupyter Notebook entwickelt. Der Export des Jupyter Notebooks ist im Folgenden dargestellt.
 
+# Jupyter Notebook
 ```python
 import cv2 as cv
 from matplotlib import pyplot as plt
