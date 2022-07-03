@@ -1,8 +1,4 @@
 # Erkennung von Spurmarkierungen
-In diesem Projekt sollen Spurmarkierungen in zwei bestehenden Datensätzen erkannt werden: 
-1. Udacity Nanodegree "Self-Driving Car Engineer" (https://www.udacity.com/course/self-driving-car-engineer-nanodegree--nd0013)
-2. KITTI-Datensatz zur Erkennung von Spurmarkierungen (http://www.cvlibs.net/datasets/kitti/eval_road.php)
-
 Das Programm wurde mit Anaconda und OpenCV als Jupyter Notebook entwickelt. Der Export des Jupyter Notebooks ist im Folgenden dargestellt.
 
 **Ein Ausschnitt des Ergebnisvideos im Live-Rendering (mit Fahrbahnradien oben rechts):**
