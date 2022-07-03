@@ -15,8 +15,6 @@ import time
 print('Willkommen beim Projekt "Erkennung von Spurmarkierungen"')
 ```
 
-    Willkommen beim Projekt "Erkennung von Spurmarkierungen"
-
 
 
 ```python
@@ -30,8 +28,8 @@ def showimg(img, title):
     plt.show()
 ```
 
-# Exkurs 1: Kamerakalibrierung zur Entzerrung der Bilder
-Die vorhandenen Bilder sind aufgrund der Linsen- und Kameraeigenschaften verzerrt. Entzerren Sie die Bilder mithilfe der Kamerakalibrierungsroutinen von OpenCV (https://docs.opencv.org/4.5.3/dc/dbb/tutorial_py_calibration.html) und den aufgezeichneten Bildern.
+## Kamerakalibrierung zur Entzerrung der Bilder
+Die vorhandenen Bilder sind aufgrund der Linsen- und Kameraeigenschaften verzerrt. Die Bilder wurden mithilfe der Kamerakalibrierungsroutinen von OpenCV (https://docs.opencv.org/4.5.3/dc/dbb/tutorial_py_calibration.html) und den aufgezeichneten Kalibrationsbildern entzerrt.
 
 
 ```python
@@ -125,8 +123,8 @@ showimg(img_cal_1_undistorted, 'Kalibriert und entzerrt')
     
 
 
-# Exkurs 2: Perspektivtransformation mit Region of Interest
-Durch die Kameraperspektive wird die Krümmung der gefundenen Spurmarkierungen nicht der realen Fahrstreifenkrümmung entsprechen. Transformieren Sie daher die Bilder der Kameraperspektive in eine Vogelperspektive, die der realen Fahrstreifenkrümmung entspricht.
+## Perspektivtransformation mit Region of Interest
+Durch die Kameraperspektive wird die Krümmung der gefundenen Spurmarkierungen nicht der realen Fahrstreifenkrümmung entsprechen. Daher werden die Bilder aus der Kameraperspektive in eine Vogelperspektive, die der realen Fahrstreifenkrümmung entspricht, konvertiert.
 
 
 ```python
@@ -174,44 +172,34 @@ def transform_perspective(curr_img, M):
     return new_warped_img
 ```
 
-# Aufgabe 3: Erkennung von Fahrbahnmarkierungen
+## Erkennung von Fahrbahnmarkierungen
 
-✔ --> Erledigt
+Erfüllte Aufgaben: 
 
-☓ --> Nicht Erledigt
+- ✔ **Segmentierung**: Schränken Sie das Bild auf den Bereich ein, in dem sich die Spurmarkierungen befinden
 
-Erkennen Sie die Fahrbahnmarkierungen bzw. Fahrstreifen auf den Bildquellen von Udacity. Wenden Sie dabei die aus der Vorlesung bekannten Verfahren an. Gerne dürfen Sie auch weitere Verfahren aus anderen Quellen verwenden. Folgende Ziele müssen bei der finalen Abgabe erreicht werden: 
-- ✔ **Segmentierung**: schränken Sie das Bild auf den Bereich ein, in dem sich die Spurmarkierungen befinden
+- ✔ **Vorverarbeitung**: Führen Sie eine Kamerakalibrierung (für Udacity-Bildquellen) und die Perspektivtransformation durch
 
-- ✔ **Vorverarbeitung**: führen Sie eine Kamerakalibrierung (für Udacity-Bildquellen) und die Perspektivtransformation durch
+- ✔ **Farbräume, Histogramme**: Erkennen Sie die Spurmarkierungen in den Farben der angegebenen Quellen. Sofern weitere Spurmarkierungen auf dem Bild gefunden werden, müssen diejenigen Spurmarkierungen priorisiert werden, die die eigene Fahrspur begrenzen
 
-- ✔ **Farbräume, Histogramme**: erkennen Sie die Spurmarkierungen in den Farben der angegebenen Quellen. Sofern weitere Spurmarkierungen auf dem Bild gefunden werden, müssen diejenigen Spurmarkierungen priorisiert werden, die die eigene Fahrspur begrenzen
-
-- ✔ **Allgemeines**: Die Verarbeitung von Bildern muss in Echtzeit stattfinden --> Ziel: > 20 FPS
+- ✔ **Allgemeines**: Die Verarbeitung von Bildern muss in Echtzeit stattfinden --> Ziel: > 20 FPS auf Referenzcomputer
 
 - ✔ **Allgemeines**: Beschleunigen Sie die Verarbeitung durch weitere Maßnahmen weitere Maßnahmen überlegen (bspw. Erkennung der Spurmarkierung in den ersten Frames, Tracking der Spurmarkierung in weiteren Frames solange, bis sich Spurmarkierungspositionen zu stark ändern)
 
-- ✔ **Minimal**: relevante Spurmarkierungen werden im Video "project_video" durchgehend erkannt 
+- ✔ **Video**: Relevante Spurmarkierungen werden im Video "project_video" durchgehend erkannt 
 
-- ☓ **Zusatz**: relevante Spurmarkierungen werden im Video "challenge_video" und "harder_challenge_video" durchgehend erkannt
+- ✔ ***Zusätzliche Verbesserungen***: Erarbeiten Sie weitere Maßnahmen zur Geschwindigkeitsverbesserung Ihres Algorithmus
+    LÖSUNG: Caching von Bildern und Erkennung der Spurmarkierung in den ersten Frames, Tracking der Spurmarkierung in weiteren Frames solange, bis sich Spurmarkierungspositionen zu stark ändern
 
-- ☓ **Zusatz**: relevante Spurmarkierungen werden auf den Datensatz KITTI angewendet. Welche Anpassungen müssen vorgenommen werden, damit Ihr Algorithmus übertragen werden kann?
+ANMERKUNG: Die Software wurde auf macOS Entwickelt. Eventuell muss auf Windows "cv.waitKey(1)" entfernet werden
 
-- ✔ ***Zusatz (bearbeitet siehe Kommentare mit Detailoptimierungen)***: Erarbeiten Sie weitere Maßnahmen zur Geschwindigkeitsverbesserung Ihres Algorithmus
--    LÖSUNG: Caching von Bildern und Vergelcih der Bilder
-
-- ☓ **Zusatz**: Erkennen Sie Objekte im Bild und visualisieren Sie diese (z.B. weitere Fahrzeuge, Motorräder, etc.)
-Die Objekterkennung bitte so implementieren, dass sie deaktivierbar ist und nicht in FPS-Berechnung einzahlt.
-
-ANMERKUNG: Die Software wurde auf MAC-OS Entwickelt. Eventuell muss auf Windows "cv.waitKey(1)" entfernet werden
-
-# Ablauf
+## Ablauf
 
 <p align="center">
 <img src="./Ressources/Process.jpg" width="600"/>
 </p>
 
-# Farbfilterung mit Thresholding
+## Farbfilterung mit Thresholding
 
 
 ```python
@@ -237,7 +225,7 @@ def thresholding(frame):
     return frame
 ```
 
-# Line Extraction Laplacian
+## Line Extraction Laplacian
 
 
 ```python
@@ -256,7 +244,7 @@ def line_extraction(frame):
     #return frame[:,:,0].astype(np.uint8)
 ```
 
-# Vertikales Segmentieren
+## Vertikales Segmentieren
 
 
 
@@ -302,7 +290,7 @@ def vertical_segmentation(frame, segment_count=3):
   return left_lane, right_lane
 ```
 
-# Poly Fitting
+## Poly Fitting
 
 
 ```python
@@ -435,7 +423,7 @@ def find_segmentation_middle(frame):
     return segmenter_line
 ```
 
-# Retransform Polylines and merge in original image
+## Retransformtion der Polylines und Zusammenführung mit ursprünglichem Bild
 
 
 ```python
@@ -450,7 +438,7 @@ def retransform_and_merge(polys,frame,M):
     return cv.addWeighted(frame,1,polys,3,0)
 ```
 
-# Write Curve-Radius
+## Kurvenradius hinzufügen
 
 
 ```python
@@ -491,7 +479,7 @@ def pipeline(frame,M,M_rev,shortver=False, result=None,left_curv_rad=None,right_
 
 ```
 
-# Linienverfolgung
+## Linienverfolgung
 
 
 ```python
@@ -540,7 +528,7 @@ class MemoryThroughTime():
         return self.lastpolys[0],self.left_curv_rad[0],self.right_curv_rad[0],self.points_left[0],self.points_right[0],
 ```
 
-# DEMO
+## Demonstration
 
 
 ```python
@@ -644,7 +632,7 @@ debug=0
 rundemo(input=path_projectvid)
 ```
 
-# Angewandt auf Einzelbilder
+## Angewandt auf Einzelbilder
 
 
 ```python
