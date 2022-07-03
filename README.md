@@ -1,9 +1,18 @@
-# Projekt: Erkennung von Spurmarkierungen
+# Erkennung von Spurmarkierungen
 In diesem Projekt sollen Spurmarkierungen in zwei bestehenden Datensätzen erkannt werden: 
 1. Udacity Nanodegree "Self-Driving Car Engineer" (https://www.udacity.com/course/self-driving-car-engineer-nanodegree--nd0013)
 2. KITTI-Datensatz zur Erkennung von Spurmarkierungen (http://www.cvlibs.net/datasets/kitti/eval_road.php)
 
+Das Programm wurde mit Anaconda und OpenCV als Jupyter Notebook entwickelt. Der Export des Jupyter Notebooks ist im Folgenden dargestellt.
 
+**Ein Ausschnitt des Ergebnisvideos im Live-Rendering:**
+
+
+https://user-images.githubusercontent.com/72473553/177058944-ea20ac48-d839-4e1f-bc20-94371525db1e.mp4
+
+
+
+# Jupyter Notebook
 ```python
 import cv2 as cv
 from matplotlib import pyplot as plt
@@ -631,6 +640,12 @@ example_img='./img/Udacity/image004.jpg'
 debug=0
 rundemo(input=path_projectvid)
 ```
+
+
+
+https://user-images.githubusercontent.com/72473553/177058761-0577e3f8-6b17-4079-9155-1e0c1034639f.mp4
+
+
 
 ## Angewandt auf Einzelbilder
 
