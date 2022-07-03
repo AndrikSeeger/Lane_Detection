@@ -1,5 +1,5 @@
 # Erkennung von Spurmarkierungen
-Das Programm wurde mit Anaconda und OpenCV als Jupyter Notebook entwickelt. Der Export des Jupyter Notebooks ist im Folgenden dargestellt.
+Dieses Projekt umfasst die Entwicklung eines Programms zur Erkennung von US-amerikanischen Fahrbahnmarkierungen. Das Programm wurde mit Anaconda und OpenCV als Jupyter Notebook entwickelt. Der Export des Jupyter Notebooks ist im Folgenden dargestellt. Die Erkennung und Anzeige der Fahrbahnmarkierungen wurden stark bezüglich der Berechnungseffizienz optimiert. 
 
 **Ein Ausschnitt des Ergebnisvideos im Live-Rendering (mit Fahrbahnradien oben rechts):**
 
