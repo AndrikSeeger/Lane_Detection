@@ -5,7 +5,7 @@ In diesem Projekt sollen Spurmarkierungen in zwei bestehenden Datensätzen erkan
 
 Das Programm wurde mit Anaconda und OpenCV als Jupyter Notebook entwickelt. Der Export des Jupyter Notebooks ist im Folgenden dargestellt.
 
-**Ein Ausschnitt des Ergebnisvideos im Live-Rendering:**
+**Ein Ausschnitt des Ergebnisvideos im Live-Rendering (mit Fahrbahnradien oben rechts):**
 
 
 https://user-images.githubusercontent.com/72473553/177058944-ea20ac48-d839-4e1f-bc20-94371525db1e.mp4
