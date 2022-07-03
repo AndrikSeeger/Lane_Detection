@@ -61,7 +61,7 @@ for path in calibration_paths:
         obj_points.append(objp)
 ```
 
-
+Kalibrierungsbild:
 ![png](Ressources/output_4_0.png)
 
 
@@ -112,13 +112,13 @@ showimg(img_cal_1_undistorted, 'Kalibriert und entzerrt')
 ```
 
 
-    
+Kalibrierungsbild original:    
 ![png](Ressources/output_6_0.png)
     
 
 
 
-    
+Kalibriert und entzerrt:    
 ![png](Ressources/output_6_1.png)
     
 
@@ -670,13 +670,16 @@ plt.show()
 ```
 
 
-    
+Linke Fahrspur Durchschnittlicher Koeffizientenfehler zwischen zwei Frames:    
 ![png](Ressources/output_33_0.png)
     
 
 
 
-    
+Rechte Fahrspur Durchschnittlicher Koeffizientenfehler zwischen zwei Frames:    
 ![png](Ressources/output_33_1.png)
     
-
+## Contributing
+* Andrik Seeger
+* Eike Wobken
+* Tom Schubert
