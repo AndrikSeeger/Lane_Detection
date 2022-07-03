@@ -64,9 +64,9 @@ for path in calibration_paths:
 ```
 
 
-    
+<p align="center">
 ![png](Ressources/output_4_0.png)
-    
+</p>
 
 
 
