@@ -64,9 +64,7 @@ for path in calibration_paths:
 ```
 
 
-<p align="center">
 ![png](Ressources/output_4_0.png)
-</p>
 
 
 
@@ -209,7 +207,9 @@ ANMERKUNG: Die Software wurde auf MAC-OS Entwickelt. Eventuell muss auf Windows 
 
 # Ablauf
 
-<img src="./Ablauf.jpg" width="400" height="500" />
+<p align="center">
+<img src="./Ressources/Ablauf.jpg" width="400"/>
+</p>
 
 # Farbfilterung mit Thresholding
 
