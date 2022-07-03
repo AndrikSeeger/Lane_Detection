@@ -65,7 +65,7 @@ for path in calibration_paths:
 
 
     
-![png](output_4_0.png)
+![png](Ressources/output_4_0.png)
     
 
 
@@ -117,13 +117,13 @@ showimg(img_cal_1_undistorted, 'Kalibriert und entzerrt')
 
 
     
-![png](output_6_0.png)
+![png](Ressources/output_6_0.png)
     
 
 
 
     
-![png](output_6_1.png)
+![png](Ressources/output_6_1.png)
     
 
 
@@ -683,12 +683,12 @@ plt.show()
 
 
     
-![png](output_33_0.png)
+![png](Ressources/output_33_0.png)
     
 
 
 
     
-![png](output_33_1.png)
+![png](Ressources/output_33_1.png)
     
 
