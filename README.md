@@ -208,7 +208,7 @@ ANMERKUNG: Die Software wurde auf MAC-OS Entwickelt. Eventuell muss auf Windows 
 # Ablauf
 
 <p align="center">
-<img src="./Ressources/Process.jpg" width="400"/>
+<img src="./Ressources/Process.jpg" width="600"/>
 </p>
 
 # Farbfilterung mit Thresholding
