@@ -34,13 +34,13 @@ def showimg(img, title):
 ```
 
 ## Kamerakalibrierung zur Entzerrung der Bilder
-Die vorhandenen Bilder sind aufgrund der Linsen- und Kameraeigenschaften verzerrt. Die Bilder wurden mithilfe der Kamerakalibrierungsroutinen von OpenCV (https://docs.opencv.org/4.5.3/dc/dbb/tutorial_py_calibration.html) und den aufgezeichneten Kalibrationsbildern entzerrt.
+Die vorhandenen Bilder sind aufgrund der Linsen- und Kameraeigenschaften verzerrt. Die Bilder wurden mittels der Kamerakalibrierungsroutinen von OpenCV (https://docs.opencv.org/4.5.3/dc/dbb/tutorial_py_calibration.html) und den aufgezeichneten Kalibrationsbildern entzerrt.
 
 
 ```python
 """
   # Kalibrationsdaten berechnen
-  # Der Code liest alle Kalibrationsbilder ein und fügt alle entnommenen Daten zusammen
+  # Der Code liest alle Kalibrationsbilder ein und fügt die entnommenen Daten zusammen
 """
 # Einlesen und Anzeigen eines Beispielbildes
 img_cal_1 = cv.cvtColor(cv.imread('./img/Udacity/calib/calibration1.jpg'), cv.COLOR_BGR2RGB)
@@ -74,11 +74,11 @@ Kalibrierungsbild:
 ```python
 """
   # Funktion zur Berechnung der Kamerakalibrierung:
-  # Diese wird nur einmal zu Beginn durchgeführt um die Performance zu erhöhen, 
+  # Diese wird nur einmal zu Beginn durchgeführt um die Leistung zu erhöhen, 
   # danach wird mit der resultierenden Map jedes Frame geremappt und so entzerrt
 """
 def calibrate():
-    size_1 = (1280,720) #Größe der Bilder definieren (schneller als automatisch zu bestimmen)
+    size_1 = (1280,720) #Größe der Bilder definieren (schneller als automatische Erkennung)
     #Kameraparameter berechnen
     _, mtx, dist, _, _ = cv.calibrateCamera(obj_points, calib_points, size_1, None, None)
     newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, size_1, 0, size_1)
