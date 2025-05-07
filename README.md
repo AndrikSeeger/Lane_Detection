@@ -1,14 +1,17 @@
-# Erkennung von Spurmarkierungen
-Dieses Projekt umfasst die Entwicklung eines Programms zur Erkennung von US-amerikanischen Fahrbahnmarkierungen. Das Programm wurde mit Anaconda und OpenCV als Jupyter Notebook entwickelt. Der Export des Jupyter Notebooks ist im Folgenden dargestellt. Die Erkennung und Anzeige der Fahrbahnmarkierungen wurden stark bezüglich ihrer Berechnungseffizienz optimiert. 
+# 🛣️ Lane Marking Detection
 
-**Ein Ausschnitt des Ergebnisvideos im Live-Rendering:**
+This project involves the development of a program for detecting **U.S. road lane markings**. The software was created using **Anaconda** and **OpenCV** within a **Jupyter Notebook** environment. Below, you'll find the exported notebook. The detection and visualization of the lane markings have been **heavily optimized for computational efficiency**.
 
+🎥 **A snippet from the live-rendered output video:**
 
 https://user-images.githubusercontent.com/72473553/177058944-ea20ac48-d839-4e1f-bc20-94371525db1e.mp4
 
-Die erkannten Spurmarkierungen sind rot hervorgehoben. Die entsprechenden Fahrspurradien sind oben rechts dargestellt. 
+Detected lane lines are highlighted in **red**, and the calculated **lane curvature radius** is shown in the top-right corner.
 
-# Jupyter Notebook
+---
+
+## 📓 Jupyter Notebook
+
 ```python
 import cv2 as cv
 from matplotlib import pyplot as plt
@@ -17,15 +20,15 @@ import os
 import glob
 import time
 
-print('Willkommen beim Projekt "Erkennung von Spurmarkierungen"')
+print('Welcome to the "Lane Marking Detection" project 🚗🛣️')
 ```
 
-
+---
 
 ```python
 """
-  # Hilfsfunktion um Bilder mit Titel anzuzeigen
-  # Die Funktion erstellt pro Aufruf ein Bild
+  # Helper function to display images with a title
+  # This function shows one image per call
 """
 def showimg(img, title):
     plt.imshow(img)
@@ -33,664 +36,783 @@ def showimg(img, title):
     plt.show()
 ```
 
-## Kamerakalibrierung zur Entzerrung der Bilder
-Die vorhandenen Bilder sind aufgrund der Linsen- und Kameraeigenschaften verzerrt. Die Bilder wurden mittels der Kamerakalibrierungsroutinen von OpenCV (https://docs.opencv.org/4.5.3/dc/dbb/tutorial_py_calibration.html) und den aufgezeichneten Kalibrationsbildern entzerrt.
+---
 
+## 🎯 Camera Calibration to Undistort Images
+
+The input images are distorted due to lens and camera characteristics. These distortions are corrected using **OpenCV's camera calibration tools**
+(see: [https://docs.opencv.org/4.5.3/dc/dbb/tutorial\_py\_calibration.html](https://docs.opencv.org/4.5.3/dc/dbb/tutorial_py_calibration.html))
+and the corresponding calibration images provided.
 
 ```python
 """
-  # Kalibrationsdaten berechnen
-  # Der Code liest alle Kalibrationsbilder ein und fügt die entnommenen Daten zusammen
+  # Compute calibration data
+  # Reads all calibration images and extracts chessboard corner data
 """
-# Einlesen und Anzeigen eines Beispielbildes
+# Load and display an example calibration image
 img_cal_1 = cv.cvtColor(cv.imread('./img/Udacity/calib/calibration1.jpg'), cv.COLOR_BGR2RGB)
-showimg(img_cal_1, 'Kalibrierungsbild')
+showimg(img_cal_1, 'Calibration Image')
 
-# Alle Pfade der Kalibrierbilder laden
+# Load paths of all calibration images
 calibration_paths = glob.glob('./img/Udacity/calib/*.jpg')
 
-# Gefundene markante Punkte und Objektpunkte definieren
-calib_points = []
-obj_points = []
-objp = np.zeros((6*9,3), np.float32)
-objp[:,:2] = np.mgrid[0:9,0:6].T.reshape(-1,2)
+# Prepare object points and image points
+calib_points = []   # 2D points in image plane
+obj_points = []     # 3D points in real world space
 
-# Für alle Kalibrationsbilder durchführen
+# 3D points in real world space (chessboard coordinates)
+objp = np.zeros((6*9, 3), np.float32)
+objp[:, :2] = np.mgrid[0:9, 0:6].T.reshape(-1, 2)
+
+# Loop through all calibration images
 for path in calibration_paths:
     img = cv.cvtColor(cv.imread(path), cv.COLOR_BGR2RGB)
-    #Markante Eckpunkte finden und gegebenenfalls abspeichern
-    ret, points = cv.findChessboardCorners(img, (9, 6), None) #9 innere Kanten horizontal, 6 vertikal
+
+    # Find chessboard corners
+    ret, points = cv.findChessboardCorners(img, (9, 6), None)  # 9 inner corners horizontal, 6 vertical
 
     if ret:
         calib_points.append(points)
         obj_points.append(objp)
 ```
 
-Kalibrierungsbild:
-![png](Ressources/output_4_0.png)
+### 📷 Calibration Image
 
+![Calibration Image](Ressources/output_4_0.png)
 
+---
 
 ```python
 """
-  # Funktion zur Berechnung der Kamerakalibrierung:
-  # Diese wird nur einmal zu Beginn durchgeführt um die Leistung zu erhöhen, 
-  # danach wird mit der resultierenden Map jedes Frame geremappt und so entzerrt
+  # Function to compute camera calibration:
+  # This is done only once at the beginning to improve performance.
+  # After that, every frame is undistorted using the precomputed remap matrices.
 """
 def calibrate():
-    size_1 = (1280,720) #Größe der Bilder definieren (schneller als automatische Erkennung)
-    #Kameraparameter berechnen
+    size_1 = (1280, 720)  # Define image size (faster than auto-detection)
+
+    # Compute camera matrix and distortion coefficients
     _, mtx, dist, _, _ = cv.calibrateCamera(obj_points, calib_points, size_1, None, None)
     newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, size_1, 0, size_1)
-    #Map für Entzerrung berechnen
+
+    # Compute remap for undistortion
     mapx, mapy = cv.initUndistortRectifyMap(mtx, dist, None, newcameramtx, size_1, 5)
-    #Region of interest bestimmen
+
+    # Define region of interest
     x, y, w, h = roi
-    #Slices für höhere Performance vorberechnen
-    x = slice(x,x+w)
-    y = slice(y,y+h)
+
+    # Precompute slices for faster processing
+    x = slice(x, x + w)
+    y = slice(y, y + h)
+
     return mapx, mapy, x, y
 ```
 
+---
 
 ```python
 """
-  # Funktion um einzelne Bilder mit berechneter Kalibrierung zu entzerren
+  # Function to undistort a single image using the precomputed calibration maps
 """
 def undistort_image(img, mapx, mapy, x, y):
-    # Bild remappen, dabei keine (lineare oder kubische) Interpolation sondern nächstes Nachbarpixel verwenden,
-    # für bessere Performance 
+    # Remap the image using nearest neighbor interpolation for performance
     undist_img = cv.remap(img, mapx, mapy, cv.INTER_NEAREST)
-    # Auf ROI beschneiden
+
+    # Crop to the region of interest
     new_frame = undist_img[y, x]
+
     return new_frame
 
-# Beispielhaft an erstem Kalibrierungsbild durchgeführt
-# Originalbild:
-showimg(img_cal_1, 'Kalibrierungsbild original')
-mapx, mapy, x, y = calibrate()
+# Run example with the first calibration image
+# Original Image:
+showimg(img_cal_1, 'Original Calibration Image')
 
-# Nach Kalibration, entzerrtes Bild:
+# Calibrate and undistort
+mapx, mapy, x, y = calibrate()
 img_cal_1_undistorted = undistort_image(img_cal_1, mapx, mapy, x, y)
 
-showimg(img_cal_1_undistorted, 'Kalibriert und entzerrt')
+# Display the undistorted result
+showimg(img_cal_1_undistorted, 'Calibrated and Undistorted Image')
 ```
 
+---
 
-Kalibrierungsbild original:    
-![png](Ressources/output_6_0.png)
-    
+### 🖼️ Original Calibration Image
 
+![Original Calibration Image](Ressources/output_6_0.png)
 
+---
 
-Kalibriert und entzerrt:    
-![png](Ressources/output_6_1.png)
-    
+### 🛠️ Calibrated and Undistorted Image
 
+![Undistorted Calibration Image](Ressources/output_6_1.png)
 
-## Perspektivtransformation mit Region of Interest
-Durch die Kameraperspektive wird die Krümmung der gefundenen Spurmarkierungen nicht der realen Fahrstreifenkrümmung entsprechen. Daher werden die Bilder aus der Kameraperspektive in eine Vogelperspektive, die der realen Fahrstreifenkrümmung entspricht, konvertiert.
+---
 
+## 🛰️ Perspective Transformation with Region of Interest (ROI)
+
+Due to the camera's angled view, the detected curvature of the lane markings does **not** match the **real-world curvature** of the driving lanes.
+To correct this, the image is transformed from the camera’s perspective to a **bird’s-eye view** (top-down), which better reflects the true curvature of the road.
+
+---
 
 ```python
 """
-  # Funktion um Transformationsmatrizen zwischen den Blickperspektiven zu berechnen
+  # Function to calculate transformation matrices between camera view and bird's-eye view
 """
 def calc_perspective():
-    #Punkte im Originalbild   
-    r_1 = [598,448]
+    # Points in the original image (camera perspective)
+    r_1 = [598, 448]
     r_2 = [684, 448]
     r_3 = [1026, 668]
     r_4 = [278, 668]
     
-    #Punkte aus Vogelperspektive (verbessert für Performance und Qualität)       
+    # Corresponding points in the bird's-eye view (optimized for quality & performance)
     t_1 = [250, 0]
     t_2 = [980, 0]
     t_3 = [980, 629]
     t_4 = [250, 629]
     
-    #Array mit Punkten im Originalbild
-    input_points = np.float32([(r_1), (r_2), (r_3), (r_4)])
-    #Array mit Punkten in Vogelperspektive
-    output_points = np.float32([(t_1), (t_2), (t_3), (t_4)])              
+    # Create arrays of source and destination points
+    input_points = np.float32([r_1, r_2, r_3, r_4])
+    output_points = np.float32([t_1, t_2, t_3, t_4])
     
-    #Transformationsmatrix für Normalperspektive -> Vogelperspektive berechnen
+    # Compute the perspective transform matrix (camera → bird's-eye)
     M = cv.getPerspectiveTransform(input_points, output_points)
-    #Transformationsmatrix für Vogelperspektive -> Normalperspektiveberechnen
+    
+    # Compute the inverse matrix (bird's-eye → camera)
     M_rev = cv.getPerspectiveTransform(output_points, input_points)
     
     return M, M_rev
 ```
 
+---
 
 ```python
 """
-  # Funktion um Perspektive auf Vogelperspektive zu transformieren und ROI
+  # Function to apply the perspective transform to get the bird's-eye view
 """
 def transform_perspective(curr_img, M):
-    # Region of interest (Himmel wegschneiden) (unnöttig wegen Perspektivtransformation)
-    #curr_img[0:400,:,:]=0
-    # Größe des Ergebnisbild bestimmen
-    curr_img_size = (curr_img.shape[1], curr_img.shape[0])  
-    # Perspektive mit Transformationsmatrix M anpassen
+    # Optional: cut off sky area (not necessary due to transformation)
+    # curr_img[0:400, :, :] = 0
+    
+    # Define the size of the output image
+    curr_img_size = (curr_img.shape[1], curr_img.shape[0])
+    
+    # Apply perspective warp using the transformation matrix
     new_warped_img = cv.warpPerspective(curr_img, M, curr_img_size, flags=cv.INTER_NEAREST)
+    
     return new_warped_img
 ```
 
-## Erkennung von Fahrbahnmarkierungen
+---
 
-Erfüllte Aufgaben: 
+## 🚗 Lane Marking Detection
 
-- ✔ **Segmentierung**: Schränken Sie das Bild auf den Bereich ein, in dem sich die Spurmarkierungen befinden
+### ✅ Completed Tasks:
 
-- ✔ **Vorverarbeitung**: Führen Sie eine Kamerakalibrierung (für Udacity-Bildquellen) und die Perspektivtransformation durch
+* ✔ **Segmentation**: Restrict the image to the area where lane markings are likely located.
+* ✔ **Preprocessing**: Perform camera calibration (for Udacity image sources) and perspective transformation.
+* ✔ **Color Spaces & Histograms**: Detect lane markings in the typical colors found in the dataset. If multiple markings are present, prioritize those that define the ego lane.
+* ✔ **Performance**: Image processing must work in real-time — target: **> 20 FPS** on the reference system.
+* ✔ **Optimization**: Implement further improvements (e.g., detect lane markings in early frames, then track them in subsequent frames unless drastic changes occur).
+* ✔ **Video**: Lane lines are continuously detected throughout the `project_video`.
+* ✔ ***Additional Enhancements***: Explore further speed improvements.
+  **SOLUTION**: Caching images and performing full detection only in initial frames. In later frames, track the existing lane lines unless their positions change significantly.
 
-- ✔ **Farbräume, Histogramme**: Erkennen Sie die Spurmarkierungen in den Farben der angegebenen Quellen. Sofern weitere Spurmarkierungen auf dem Bild gefunden werden, müssen diejenigen Spurmarkierungen priorisiert werden, die die eigene Fahrspur begrenzen
+> 💡 **Note**: Developed on macOS. You may need to **remove `cv.waitKey(1)`** when running on Windows.
 
-- ✔ **Allgemeines**: Die Verarbeitung von Bildern muss in Echtzeit stattfinden --> Ziel: > 20 FPS auf Referenzcomputer
+---
 
-- ✔ **Allgemeines**: Beschleunigen Sie die Verarbeitung durch weitere Maßnahmen weitere Maßnahmen überlegen (bspw. Erkennung der Spurmarkierung in den ersten Frames, Tracking der Spurmarkierung in weiteren Frames solange, bis sich Spurmarkierungspositionen zu stark ändern)
-
-- ✔ **Video**: Relevante Spurmarkierungen werden im Video "project_video" durchgehend erkannt 
-
-- ✔ ***Zusätzliche Verbesserungen***: Erarbeiten Sie weitere Maßnahmen zur Geschwindigkeitsverbesserung Ihres Algorithmus
-    LÖSUNG: Caching von Bildern und Erkennung der Spurmarkierung in den ersten Frames, Tracking der Spurmarkierung in weiteren Frames solange, bis sich Spurmarkierungspositionen zu stark ändern
-
-ANMERKUNG: Die Software wurde auf macOS Entwickelt. Eventuell muss auf Windows "cv.waitKey(1)" entfernet werden
-
-## Ablauf
+## 🔁 Pipeline Overview
 
 <p align="center">
 <img src="./Ressources/Process.jpg" width="600"/>
 </p>
 
-## Farbfilterung mit Thresholding
+---
 
+## 🎨 Color Filtering with Thresholding
 
 ```python
 def thresholding(frame):
     """
-    # Wendet einen farblichen Threshold auf das Bild an, um relevante Bildbereiche hervorzuheben.
-    # Der HSL-Farbraum wird verwendet, um Lightness besser anpassen zu können.
+    # Applies a color threshold to highlight relevant regions in the image.
+    # The HLS color space is used to better control lightness.
     """
-    # Verwendet HLS-Farbraum für bessere Selektierbarkeit
-    frame=cv.cvtColor(frame, cv.COLOR_RGB2HLS) 
-    # Maske für gelbe Fahrbahnmarkierung
-    mask_yellow = cv.inRange(frame, (10, 28, 115), (38, 204, 255))
-    # Maske für weiße Linien
-    mask_white = cv.inRange(frame, (0, 195, 0), (255, 255, 255)) 
+    # Convert to HLS color space for better selectivity
+    frame = cv.cvtColor(frame, cv.COLOR_RGB2HLS)
 
-    # Masken elementweise verodern, um kombinierte Maske zu bekommen
-    mask_comb=mask_yellow|mask_white
-    # Alle Bereiche, die nicht im gewünschten Farbbereich liegen, auf 0 setzen
-    frame[np.where(mask_comb==0)] = 0
+    # Create mask for yellow lane lines
+    mask_yellow = cv.inRange(frame, (10, 28, 115), (38, 204, 255))
+
+    # Create mask for white lane lines
+    mask_white = cv.inRange(frame, (0, 195, 0), (255, 255, 255))
+
+    # Combine masks
+    mask_comb = mask_yellow | mask_white
+
+    # Zero out everything outside the color masks
+    frame[np.where(mask_comb == 0)] = 0
+
     global debug
-    if debug == 2:  
-        cv.imshow("frame",frame)
+    if debug == 2:
+        cv.imshow("frame", frame)
+
     return frame
 ```
 
-## Line Extraction Laplacian
+---
 
+## 📏 Line Extraction Using Laplacian Filter
 
 ```python
 def line_extraction(frame):
     """
-    # Wendet den Laplace- Kantenfilter auf ein Bild @frame an.
-    # Entfernt in der Vorverarbeitung Bildrauschen.
+    # Applies the Laplacian edge detector to extract lane lines from the image.
+    # Includes preprocessing to remove image noise.
     """
-    # Opening-Kernel zum entfernen von noise
-    opening_kernel=np.array([[0,1,0],[1,1,1],[0,1,0]], 'uint8')
-    # Anwenden von Opening-Kernel
+    # Define kernel for morphological opening (noise removal)
+    opening_kernel = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]], dtype='uint8')
+
+    # Apply the kernel to reduce noise
     frame = cv.morphologyEx(frame, cv.MORPH_OPEN, opening_kernel, iterations=1)
-    # Laplace Kantenfilter stellt besten Kompromiss aus Geschwindigkeit und Genauigkeit dar  
-    frame = cv.Laplacian(frame[:,:,0], -1, ksize=7) #Bild filtern
+
+    # Apply Laplacian edge detection (best compromise between speed and accuracy)
+    frame = cv.Laplacian(frame[:, :, 0], -1, ksize=7)
+
     return frame.astype(np.uint8)
-    #return frame[:,:,0].astype(np.uint8)
 ```
 
-## Vertikales Segmentieren
+---
 
-
+## 🔻 Vertical Segmentation
 
 ```python
 def vertical_segmentation(frame, segment_count=3):
-  """
-  # Vertiakle Segmentierung des Frames 
-  # Hierbei wird das Bild in der vertikalen in @segment_count Bereiche unterteilt
-  # Für jeden Bereich werden folgende Schritte durchgeführt:
-  #   1. Histogram in diesem Bereich bilden
-  #   2. Finden einer X-Stellen an der das Bild unterteilt werden kann --> find_segmentation_middle
-  #     3.1 Für @return left_lane wird der gesamte Bereich rechts von der X-Stellen auf 0 gesetzt
-  #     3.2 Für @return right_lane wird der gesamte Bereich links von der X-Stellen auf 0 gesetzt
-  # Die Funktion erzeugt zwei Bilder wobei jeweills nur eine Fahrspur zu erkennen ist
-  # Die mehrfache Segmentierung ist bei steilen Kurven und vorallem S-Kurven notwendig
-  """
-  # Array von X-Stellen an denen das Bild unterteilt
-  segmenter_lines=[]
+    """
+    # Vertically segments the input frame into `segment_count` regions.
+    # For each vertical region:
+    #   1. A histogram is calculated.
+    #   2. The best X-coordinate for splitting lanes is found using `find_segmentation_middle`.
+    #   3.1 For @return `left_lane`, everything to the right of that X is set to 0.
+    #   3.2 For @return `right_lane`, everything to the left of that X is set to 0.
+    #
+    # The function returns two binary images, each isolating one lane line.
+    # Multiple vertical segments help accurately detect lanes in sharp and S-shaped curves.
+    """
+    segmenter_lines = []
+    left_lane = frame.copy()
+    right_lane = frame.copy()
 
-  # COPY um zwei seperate Bilder zu erzeugen
-  left_lane=frame.copy()
-  right_lane=frame.copy()
+    # Determine height of each segment
+    y = (frame.shape[0] - 1) // segment_count
 
-  # Berechnung der Y-Koordinaten für die Unterteilung des Bildes
-  y=((frame.shape[0]-1)//segment_count)
+    for line in range(segment_count):
+        # Find optimal X-position to separate left and right lanes
+        x = find_segmentation_middle(frame[line * y:(line + 1) * y, :])
+        segmenter_lines.append(x)
 
-  # Über alle Bereiche iterieren 
-  for line in range(0,segment_count):
-    # X-Stellen zwischen den beiden Fahrspuren finden
-    x=find_segmentation_middle(frame[line*y:(line+1)*y,:])
-    # X-Stelle zu Array hinzufügen
-    segmenter_lines.append(x)
-    # Alle Intensitätswerte links von der X-Stelle auf 0 setzten --> Nur rechte Fahrspur zu sehen
-    right_lane[(line)*y:((line+1)*y),0:x]=0
+        # Zero out pixels to the left of X → isolate right lane
+        right_lane[line * y:(line + 1) * y, 0:x] = 0
 
-    # Alle Intensitätswerte links von der X-Stelle auf 0 setzten --> Nur rechte Fahrspur zu sehen
-    left_lane[(line)*y:(line+1)*y,x:frame.shape[1]-1]=0
-    global debug
+        # Zero out pixels to the right of X → isolate left lane
+        left_lane[line * y:(line + 1) * y, x:frame.shape[1] - 1] = 0
+
+        global debug
+        if debug == 3:
+            cv.line(frame, (x, line * y), (x, (line + 1) * y), (255, 0, 0), 2)
+
     if debug == 3:
-      cv.line(frame,(x,(line)*y),(x,(line+1)*y),(255,0,0),2)
-  if debug == 3:  
-    cv.imshow("frame",frame)
-  return left_lane, right_lane
+        cv.imshow("frame", frame)
+
+    return left_lane, right_lane
 ```
 
-## Poly Fitting
+---
 
+## 📐 Polynomial Smoothing
 
 ```python
-right=[]
-left=[]
+right = []
+left = []
 ```
 
-
 ```python
-def smooth_points(original,reference,left_la=True):
-    # Berechnung der Änderungsrate zwischen gespeicherten Polynom Gewichten und den neu berechneten Polynomgewichten
-    change_rate=1-(np.mean(np.abs(original-reference))*1.6) if 1-(np.mean(np.abs(original-reference))*1.6)>=0 else 0
-    # Variablen zum tracken des Fehlers
+def smooth_points(original, reference, left_la=True):
+    """
+    # Smooths the polynomial coefficients between frames to reduce jitter.
+    # Calculates a change rate based on the absolute difference between new and previous coefficients.
+    # Applies smoothing: if the change is small, trust the new values; if large, favor the previous ones.
+    """
+    # Calculate rate of change (clamped at 0)
+    change_rate = max(1 - (np.mean(np.abs(original - reference)) * 1.6), 0)
+
     global right
     global left
     global debug
-    # Fehler für die Linke und Rechte Spur speichern
+
+    # Track smoothing quality over time
     if left_la:
         left.append(change_rate)
     else:
         right.append(change_rate)
+
     if debug == 5:
         return original
     else:
-        return change_rate*original+(1-change_rate)*reference
-    #
+        return change_rate * original + (1 - change_rate) * reference
+```
 
+---
+
+## 📈 Polynomial Fitting and Lane Curvature Estimation
+
+```python
 def polyfit(frame, reference):
     """
-    # Findet ein Polynom zweiten Grades, dass die Fahrspuren so gut wie möglich als ganzrationale Funktion abbildet
-    # Diese Polynom wird in ein schwarzes BGR-Bild eingefügt und zurückgegeben
-    # Berechnet die Kurvenradien an den Extremstellen der Polynome links und rechts
-    """
-    # Erzeugen eines leeren Bildes um die Polynome darin abzuspeichern
-    result=np.zeros(shape=(frame.shape[0],frame.shape[1],3),dtype=np.uint8)
-    # Die linke und rechte Fahrspur zerteilen --> left_lane=Bild von Linke Fahrspur (rechte Seite 0 gesetzt)
-    #                                         --> right_lane=Bild von rechte Fahrspur (linke Seite 0 gesetzt)
-    left_lane,right_lane=vertical_segmentation(frame)
-    # Finden eines Polynoms 2. Grades, dass die linke Fahrspur beschreibt --> pl ist Polynom, max_val_l-> Extremstelle des Polynoms
-    points_left,p_l,max_val_l,koeff_left=poly(left_lane,2,reference[0])
-    # Finden eines Polynoms 2. Grades, dass die linke Fahrspur beschreibt --> pr ist Polynom, max_val_r-> Extremstelle des Polynoms
-    points_right,p_r,max_val_r,koeff_right=poly(right_lane,2,reference[1],False)
+    Fits second-degree polynomials to both left and right lane markings
+    and calculates the curvature at their respective extrema.
 
-    cv.polylines(result,np.int_([points_left,points_right]),isClosed=False,color=(255,0,0),thickness=25)
+    Returns:
+        - result: an image with the lane curves drawn
+        - left_curv_rad: curvature radius of the left lane
+        - right_curv_rad: curvature radius of the right lane
+        - koeff_left: polynomial coefficients for the left lane
+        - koeff_right: polynomial coefficients for the right lane
+    """
+    # Create empty BGR image for drawing
+    result = np.zeros((frame.shape[0], frame.shape[1], 3), dtype=np.uint8)
+
+    # Segment the image into left and right lanes
+    left_lane, right_lane = vertical_segmentation(frame)
+
+    # Fit 2nd degree polynomial to each lane
+    points_left, p_l, max_val_l, koeff_left = poly(left_lane, 2, reference[0])
+    points_right, p_r, max_val_r, koeff_right = poly(right_lane, 2, reference[1], sd=False)
+
+    # Draw polylines on result image
+    cv.polylines(result, np.int_([points_left, points_right]), isClosed=False, color=(255, 0, 0), thickness=25)
+
     global debug
     if debug == 4:
-        cv.polylines(frame,np.int_([points_left,points_right]),isClosed=False,color=(255,0,0),thickness=25)  
-        cv.imshow("frame",frame)
-    # Kurvenradius berechnen
-    # Bildung der Ableitung der Polynome
-    pld=np.polyder(p_l)
-    prd=np.polyder(p_r)
-    # Berechnung des Kurvenradius linke Fahrspur an der Stelle max_val_l. (An der Extremstelle)
-    left_curv_rad = (1 + (pld(max_val_l)*2)*1.5) / np.absolute(np.polyder(pld)(max_val_l))
-    # Berechnung des Kurvenradius rechte Fahrspur an der Stelle max_val_r. (An der Extremstelle)
-    right_curv_rad = (1 + (prd(max_val_r)*2)*1.5) / np.absolute(np.polyder(prd)(max_val_r))
-    # Returnt das Bild, in das die Poylnome eingefügt wurden und die Kurvenradien
-    return result,left_curv_rad,right_curv_rad,koeff_left,koeff_right
+        cv.polylines(frame, np.int_([points_left, points_right]), isClosed=False, color=(255, 0, 0), thickness=25)
+        cv.imshow("frame", frame)
 
-def poly(frame,grad,reference,sd=True):
+    # Derive curvature from polynomial derivatives
+    pld = np.polyder(p_l)
+    prd = np.polyder(p_r)
+
+    left_curv_rad = (1 + (pld(max_val_l) * 2) * 1.5) / np.abs(np.polyder(pld)(max_val_l))
+    right_curv_rad = (1 + (prd(max_val_r) * 2) * 1.5) / np.abs(np.polyder(prd)(max_val_r))
+
+    return result, left_curv_rad, right_curv_rad, koeff_left, koeff_right
+```
+
+---
+
+## 🧮 Polynomial Fitting for One Lane
+
+```python
+def poly(frame, grad, reference, sd=True):
     """
-    # Berechnung des Polynoms für eine Fahrspur
-    # Berechnung des Minimums/Maximums (Extremstelle) des Polynoms
+    Fits a polynomial of degree `grad` to non-zero pixels in the lane image,
+    and identifies its extremum (e.g., the turning point of a parabola).
+
+    Returns:
+        - points: list of (x, y) coordinates on the curve
+        - p: fitted polynomial function
+        - maxval: index of the curve’s extremum
+        - polynom: fitted polynomial coefficients
     """
-    # Lineare Achse für die diskrete Berechnung des Polynoms zweiten Grades
-    height_n=np.linspace(0,frame.shape[1],frame.shape[1])
-    # Finden der X,Y Koordinaten der Pixel die nicht null sind (Punkte zum Bilden des Polynoms) 
-    (zeile,spalte)=np.nonzero(frame)
-    # Umrechnungsfaktor von Pixel auf Meter
-    x_m_per_pix=30/720
-    y_m_per_pix=3.7/700
-    # Berechne Polynomgewichte (3 Stück) um Funktion 2.Grades zu berechnen
-    polynom = np.polyfit(x_m_per_pix*zeile, y_m_per_pix*spalte, grad)
+    height_n = np.linspace(0, frame.shape[1], frame.shape[1])
+
+    # Extract x, y of non-zero pixels (lane points)
+    (row, col) = np.nonzero(frame)
+
+    # Conversion factors from pixels to meters
+    x_m_per_pix = 30 / 720
+    y_m_per_pix = 3.7 / 700
+
+    # Fit polynomial to lane points
+    polynom = np.polyfit(x_m_per_pix * row, y_m_per_pix * col, grad)
+
+    # Smooth using previous frame's polynomial, if available
     if reference is not None:
-        polynom=np.poly1d(smooth_points(polynom,reference,sd))
-    # Polynome in leeres Bild einzeichnen
-    # Berechnen einer Funktion aus den Gewichten --> yn2 = w2_2 * xn**2 + w2_1 * xn + w2_0   
-    p = np.poly1d(polynom)
-    # Funktion X-Koordinaten in Abhängigkeit von y-Werten (gedrehtes Koordinatensystem und gespiegelt) x(y)
-    width_n=p(height_n)
-    # Finde die Extremstelle durch finden des minimalen Werts der Ableitung (Analytisch --> 0)
-    maxval=np.argmin(np.abs(np.polyder(p)(height_n)))
-    # return die Werte des Polynoms (Punktwolke die von dem Polynom beschrieben wird) über das gesamte Bild (Bird View)
-    return np.dstack(((1/y_m_per_pix)*width_n,(1/x_m_per_pix)*height_n)).astype(np.uint32),p,maxval,polynom
+        polynom = np.poly1d(smooth_points(polynom, reference, sd))
 
+    p = np.poly1d(polynom)
+    width_n = p(height_n)
+
+    # Find extremum (where derivative is zero)
+    maxval = np.argmin(np.abs(np.polyder(p)(height_n)))
+
+    # Convert back to pixel coordinates
+    return np.dstack(((1 / y_m_per_pix) * width_n, (1 / x_m_per_pix) * height_n)).astype(np.uint32), p, maxval, polynom
+```
+
+---
+
+## 🧭 Histogram-Based Lane Splitting
+
+```python
 def find_segmentation_middle(frame):
     """
-    # Sucht in einem Histogramm für zwei Spurmarkierungen den Punkt, an dem das Bild am besten getrennt werden kann, 
-    # um in jedem Bereich die vollständige Linie zu bewahren. Dazu wird das Bild spaltenweise aufsummiert, sodass 
-    # sich zu jedem x-Wert ein kumulierter Helligkeitswert ergibt. Die Linien des Bildes stellen in dieser Form Hochpunkte des Histogramms dar.
-    # Um diese zu finden, wird sowohl von links als auch von rechts das Maximum im entstandenen Histogramm gesucht.
-    # Das Mittel der beiden so gefundenen x-Werte stellt die beste Segmentierung dar.
-    # @returns x-Wert, an dem das Bild segmentiert werden sollte.
-    """
-    # Kernel für Faltung definieren (normiert auf eins)
-    kernel= np.ones(40)
-    kernel=kernel/40
-    # Kumulierte Summe über Spalten bilden
-    summe=np.sum(frame,axis=0)
-    # Peaks durch einfache Faltung entfernen
-    summe_smooth=np.convolve(summe,kernel,mode='same')
+    Determines the optimal X-coordinate to split the image between left and right lanes.
 
-    # Zentren der Peaks initialisieren
+    Steps:
+        - Sum the pixel values column-wise to create a histogram.
+        - Smooth the histogram with a convolution kernel.
+        - Find peak values from the left and right sides.
+        - Return the midpoint between these peaks.
+
+    Returns:
+        - segmenter_line: the X-position for splitting the image
+    """
+    # Smoothing kernel
+    kernel = np.ones(40) / 40
+
+    # Create column-wise brightness histogram
+    summed = np.sum(frame, axis=0)
+
+    # Smooth the histogram
+    smoothed = np.convolve(summed, kernel, mode='same')
+
+    # Initialize peak positions
     left_center = -1
-    right_center= -1
+    right_center = -1
 
-    # Durch kumulierte Summe iterieren
-    for i, p in enumerate(summe_smooth):
-        # In der Hälfte aufhören, weil dann mit zwei Indizes (rechts, links) das gesamte Bild untersucht wurde
-        if i >= len(summe_smooth)//2:
+    # Search for peaks
+    for i, p in enumerate(smoothed):
+        if i >= len(smoothed) // 2:
             break
-        # Wenn Maximum von links gefunden wird, linkes Zentrum auf Maximum setzen
-        if summe_smooth[i + 3] < p and p > summe_smooth[left_center]:
+        if smoothed[i + 3] < p and p > smoothed[left_center]:
             left_center = i
-        # Wenn Maximum von rechts gefunden wird, rechtes Zentrum auf MAximum legen
-        if summe_smooth[len(summe_smooth) - i - 4] < summe_smooth[len(summe_smooth) - i - 1] and summe_smooth[len(summe_smooth) - i - 4] > summe_smooth[right_center]:
-            right_center = len(summe_smooth) - i
+        if smoothed[len(smoothed) - i - 4] < smoothed[len(smoothed) - i - 1] and smoothed[len(smoothed) - i - 4] > smoothed[right_center]:
+            right_center = len(smoothed) - i
 
-    # Wertebereich für Maxima manuell so einschränken, dass auch bei Fehlern keine Ausreißer entstehen
-    if right_center>frame.shape[1]-200:
-        right_center=frame.shape[1]-200
-    if right_center==-1:
-        right_center=frame.shape[1]//2
-    if left_center<200:
-        left_center=200
+    # Prevent extreme or invalid values
+    if right_center > frame.shape[1] - 200:
+        right_center = frame.shape[1] - 200
+    if right_center == -1:
+        right_center = frame.shape[1] // 2
+    if left_center < 200:
+        left_center = 200
 
-    # Maxima von links und rechts mitteln, um optimale Segmentierung zu finden
-    segmenter_line = (left_center + right_center)//2
-    # Optimale Segmentierung zurückgeben
-    return segmenter_line
+    # Return average of the two peak positions
+    return (left_center + right_center) // 2
 ```
 
-## Retransformtion der Polylines und Zusammenführung mit ursprünglichem Bild
+---
 
+## 🔄 Retransform Polylines and Merge with Original Image
 
 ```python
-def retransform_and_merge(polys,frame,M):
+def retransform_and_merge(polys, frame, M):
     """
-    # Wendet die inverse Perspektivtransformation auf das Bild an, das die Polynome enthält @polys
-    # Die eingefärbten und retransformierten Polynome werden dann mit dem Originalbild @frame verbunden
+    Applies the inverse perspective transform to the image containing the lane polylines (`polys`).
+    Then merges the transformed polylines with the original camera image (`frame`).
+
+    Returns:
+        - Combined image with overlaid lane markings.
     """
-    # wendet Perspektivtransformation auf Polynome an
-    polys=transform_perspective(polys,M)
-    # fügt die Polynome in das Originalbild ein und gibt dies zurück
-    return cv.addWeighted(frame,1,polys,3,0)
+    polys = transform_perspective(polys, M)
+    return cv.addWeighted(frame, 1, polys, 3, 0)
 ```
 
-## Kurvenradius hinzufügen
+---
 
+## 🧾 Add Curvature Radius Text
 
 ```python
-def write_data(frame,left_curv_rad,right_curv_rad):
+def write_data(frame, left_curv_rad, right_curv_rad):
     """
-    # Schreibt den linken und rechten Kurvenradius auf das Originalbild.
-    # Formatierung:
-    # Left: <left_curv_rad> m
-    # Right: <right_curv_rad> m
+    Adds the left and right curvature radii to the image as overlay text.
+
+    Format:
+        Left: <left_curv_rad> m
+        Right: <right_curv_rad> m
     """
-    # Schreibe linken Kurvenradius
-    cv.putText(frame, f" Left:  {left_curv_rad:.2f} m", (1000, 70), cv.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 0), 1, cv.LINE_AA)
-    # Schreibe rechten Kurvenradius
-    cv.putText(frame, f" Right: {right_curv_rad:.2f} m", (1000, 140), cv.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 0), 1, cv.LINE_AA)
+    cv.putText(frame, f" Left:  {left_curv_rad:.2f} m", (1000, 70), 
+               cv.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 0), 1, cv.LINE_AA)
+    
+    cv.putText(frame, f" Right: {right_curv_rad:.2f} m", (1000, 140), 
+               cv.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 0), 1, cv.LINE_AA)
+    
     return frame
 ```
 
+---
+
+## 🛠️ Full Lane Detection Pipeline
 
 ```python
-def pipeline(frame,M,M_rev,shortver=False, result=None,left_curv_rad=None,right_curv_rad=None,reference=(None,None)):
+def pipeline(frame, M, M_rev, shortver=False, result=None, 
+             left_curv_rad=None, right_curv_rad=None, reference=(None, None)):
     """
-    # Kopiert übergebenes Frame und führt dann die notwendigen Schritte zur Linienerkennung durch, dazu gehören:
-    # Transformation auf Vogelperspektive, Thresholding, Linienexktraktion, Polynome fitten, 
-    """
-    org_frame=frame.copy()
-    (points_left,points_right) = reference
-    if not shortver: #Wenn lange Version
-        frame=transform_perspective(frame,M) #Auf Vogelperspektive konvertieren
-        global debug
-        if debug == 1:  
-            cv.imshow("frame",frame)
-        frame=thresholding(frame) #Thresholding durchführen
-        frame=line_extraction(frame) #Linien extrahieren
-        result,left_curv_rad,right_curv_rad,points_left,points_right=polyfit(frame,reference) #Polynome in Bild legen
-    frame=retransform_and_merge(polys=result,frame=org_frame,M=M_rev) #Zurück in alte Perspektive konvertieren
-    frame=write_data(frame,left_curv_rad,right_curv_rad) # Daten zu Bild hinzufügen
-    return frame,result,left_curv_rad,right_curv_rad,points_left,points_right 
+    Performs the full processing pipeline for lane detection:
+      - Applies perspective transformation
+      - Thresholding and edge extraction
+      - Polynomial fitting and curvature calculation
+      - Retransformation and data annotation
 
+    Parameters:
+        frame: input RGB frame
+        M: matrix for bird’s-eye view transform
+        M_rev: inverse matrix (for retransform)
+        shortver: if True, skips recalculating the lane detection
+        result: precomputed result image (optional)
+        left_curv_rad, right_curv_rad: precomputed curvature radii
+        reference: previously computed polynomials for smoothing
+
+    Returns:
+        - Final overlaid image
+        - Result frame with drawn polynomials
+        - Curvature radii (left & right)
+        - Polynomial coefficients for left & right
+    """
+    org_frame = frame.copy()
+    (points_left, points_right) = reference
+
+    if not shortver:
+        frame = transform_perspective(frame, M)
+        
+        global debug
+        if debug == 1:
+            cv.imshow("frame", frame)
+        
+        frame = thresholding(frame)
+        frame = line_extraction(frame)
+
+        result, left_curv_rad, right_curv_rad, points_left, points_right = polyfit(frame, reference)
+
+    frame = retransform_and_merge(polys=result, frame=org_frame, M=M_rev)
+    frame = write_data(frame, left_curv_rad, right_curv_rad)
+
+    return frame, result, left_curv_rad, right_curv_rad, points_left, points_right
 ```
 
-## Linienverfolgung
+---
 
+## 🧠 Lane Tracking Over Time
 
 ```python
 class MemoryThroughTime():
     """
-    # Speichert die Frames und Polynome des vorherigen Bildes
-    # Berechnet den Unterschied zwischen zwei Bildern
-    # Entscheidet anhand einem 'threshold' ob ein neues Polynom berechnet werden soll oder ob das Polynom
-    # des vorherigen Bildes verwendet werden kann
+    Stores data from the previous frame, such as the fitted polynomials,
+    and determines whether a new polynomial fit is needed by comparing
+    the current frame to the previous one.
+
+    Used to reduce computation by reusing previous frame results if the change is small.
     """
+
     lastframes = [None]
-    lastpolys= [None]  
+    lastpolys = [None]
     threshold = 9.0e7
     right_curv_rad = [None]
     left_curv_rad = [None]
-    points_left=[None]
-    points_right=[None]
+    points_left = [None]
+    points_right = [None]
 
-    # Replact 
-    def replace(self, frame, poly, left_curv_rad, right_curv_rad,points_left,points_right):
+    def replace(self, frame, poly, left_curv_rad, right_curv_rad, points_left, points_right):
         """
-        Ersetzt die Daten des vorherigen Frames mit den jetzigen
+        Replaces the stored frame and polynomial data with new values.
         """
-        frame=cv.cvtColor(frame,cv.COLOR_RGB2GRAY)
-        self.lastframes[0]=frame
-        self.lastpolys[0]=poly
-        self.left_curv_rad[0]=left_curv_rad
-        self.right_curv_rad[0]=right_curv_rad
-        self.points_left[0]=points_left
-        self.points_right[0]=points_right
+        frame = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
+        self.lastframes[0] = frame
+        self.lastpolys[0] = poly
+        self.left_curv_rad[0] = left_curv_rad
+        self.right_curv_rad[0] = right_curv_rad
+        self.points_left[0] = points_left
+        self.points_right[0] = points_right
 
-    def is_big_change(self,frame) -> bool:
+    def is_big_change(self, frame) -> bool:
         """
-        Entscheidet ob es sich um eine große Differenz zwischen dem vorherigen Bild und dem jetzigen handelt
+        Determines if the difference between the current and last frame exceeds the threshold.
+        Returns True if a full reprocessing is needed.
         """
-        if(self.lastframes[0] is None):
+        if self.lastframes[0] is None:
             return True
-        else:
-            frame=cv.cvtColor(frame,cv.COLOR_RGB2GRAY)
-            return self.threshold< np.sqrt(np.mean(np.square(np.sum(self.lastframes[0][0:400,:]-frame[0:400,:]))))
+        frame = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
+        diff = np.sum(self.lastframes[0][0:400, :] - frame[0:400, :])
+        return self.threshold < np.sqrt(np.mean(np.square(diff)))
 
     def get_data(self):
         """
-        Gibt die Daten des aktuell gespeicherten Frames zurück
+        Returns the stored data from the last frame.
         """
-        return self.lastpolys[0],self.left_curv_rad[0],self.right_curv_rad[0],self.points_left[0],self.points_right[0],
+        return (self.lastpolys[0], self.left_curv_rad[0], self.right_curv_rad[0],
+                self.points_left[0], self.points_right[0])
 ```
 
-## Demonstration
+---
 
+## ▶️ Demonstration Function
 
 ```python
 def rundemo(input):
     """
-    # Führt alle Hauptschritte zum Lesen und Ausführen der Pipeline durch.
-    # Differenziert je nach Input nach Video und Bildverarbeitung
+    Runs the full lane detection pipeline on either an image or video input.
+    Automatically detects the file type based on extension and handles accordingly.
     """
-    # Berechne Perspektivtransformationen für projekt-video (normal und invers)
-    M,M_rev=calc_perspective()
-    # Wenn der übergebene Pfad ein Bild ist
+    # Calculate perspective transform matrices
+    M, M_rev = calc_perspective()
+
+    # If the input is a static image
     if input.split(".")[-1].upper() == "JPG":
-        # Lies Bild ein
-        frame=cv.imread(input)
+        frame = cv.imread(input)
         frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-        # Führe Pipeline auf Bild aus
-        frame,result,left_curv_rad,right_curv_rad,_,_  = pipeline(frame,M,M_rev)
+
+        # Run full pipeline on image
+        frame, result, left_curv_rad, right_curv_rad, _, _ = pipeline(frame, M, M_rev)
         frame = cv.cvtColor(frame, cv.COLOR_RGB2BGR)
-        # Zeige ERgebnisbild an
+
+        # Display result
         cv.imshow('frame', frame)
         cv.waitKey(0)
         cv.destroyAllWindows()
         cv.waitKey(1)
-    # Wenn es sich um ein Video handelt
+
+    # If the input is a video file
     elif input.split(".")[-1].upper() == "MP4":
-        # Starte Videostream
         vid = cv.VideoCapture(input)
-        # Initialwerte für FPS-Berechnung
         prev_frame_time = 0
         new_frame_time = 0
-        # Initialisiere Memory - Funktion
-        mem=MemoryThroughTime()
-        i=0 
+        mem = MemoryThroughTime()
+        i = 0
+
         while True:
-            i+=1
-            # Neues Frame auslesen
+            i += 1
             ret, frame = vid.read()
-            # if ret False dann ist das Video vrobei
-            if ret == False:
+            if not ret:
                 break
-            # Von BGR zu RGB konvertieren
-            frame=cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-            # Kameratransformationsmatrix auf das Frame anwenden, um Distortion zu entfernen
-            frame=undistort_image(frame,mapx,mapy,x,y)
-            # Wenn es einen großen Unterschied zwischen konsekutiven Frames gibt oder jedes zweite Bild
-            if mem.is_big_change(frame) or i%2==1:
-                # Führe Pipeline auf frame aus
-                _,_,_, points_left ,points_right=mem.get_data()
-                frame,result,left_curv_rad,right_curv_rad,points_left,points_right = pipeline(frame,M,M_rev, reference=(points_left ,points_right))
-                mem.replace(frame,result,left_curv_rad, right_curv_rad,points_left,points_right)
+
+            frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            frame = undistort_image(frame, mapx, mapy, x, y)
+
+            # Check if a full reprocessing is needed (frame difference or every 2nd frame)
+            if mem.is_big_change(frame) or i % 2 == 1:
+                _, _, _, points_left, points_right = mem.get_data()
+                frame, result, left_curv_rad, right_curv_rad, points_left, points_right = pipeline(
+                    frame, M, M_rev, reference=(points_left, points_right))
+                mem.replace(frame, result, left_curv_rad, right_curv_rad, points_left, points_right)
             else:
-                # Ansonsten führe verkürzte Version der Pipeline mit Polynom aus vorherigem Frame aus
-                result,left_curv_rad,right_curv_rad,_,_=mem.get_data()
-                frame,result,left_curv_rad,right_curv_rad,points_left,points_right = pipeline(frame,M,M_rev,shortver=True,result=result,left_curv_rad=left_curv_rad,right_curv_rad=right_curv_rad)
-            # Zurück zu BGR konvertieren
-            frame=cv.cvtColor(frame, cv.COLOR_RGB2BGR)
-            # Zeige FPS an
+                result, left_curv_rad, right_curv_rad, _, _ = mem.get_data()
+                frame, result, left_curv_rad, right_curv_rad, points_left, points_right = pipeline(
+                    frame, M, M_rev, shortver=True, result=result,
+                    left_curv_rad=left_curv_rad, right_curv_rad=right_curv_rad)
+
+            frame = cv.cvtColor(frame, cv.COLOR_RGB2BGR)
+
+            # FPS Calculation
             font = cv.FONT_HERSHEY_SIMPLEX
-            # Zeit bei Beenden des Berechnungsschritts
             new_frame_time = time.time()
-        
-            #Jeden zweiten Schritt die FPS ausrechnen
-            if i%2==1:
-                fps = 1/(new_frame_time-prev_frame_time)*2.0
-                prev_frame_time=new_frame_time
+            if i % 2 == 1:
+                fps = 1 / (new_frame_time - prev_frame_time) * 2.0
+                prev_frame_time = new_frame_time
 
-            # FPS umrechnen für Anzeige
             fps = int(fps)
-            fps = str(fps)
+            cv.putText(frame, str(fps), (7, 70), font, 3, (100, 255, 0), 3, cv.LINE_AA)
 
-            # Schreibe FPS auf Hauptbild
-            cv.putText(frame, fps, (7, 70), font, 3, (100, 255, 0), 3, cv.LINE_AA)
-
-            # Zeige Frame an
+            # Display frame depending on debug level
             global debug
             if debug == 0 or debug == 5:
                 cv.imshow('frame', frame)
-            # Abbruch, wenn q gedrückt wird
+
             if cv.waitKey(1) & 0xFF == ord('q'):
                 break
-            
-        # Beenden, wenn Video zuende ist oder unterdrückt wird
+
         vid.release()
         cv.destroyAllWindows()
         cv.waitKey(1)
 ```
 
+---
+
+## 🎬 Example Usage
 
 ```python
-path_projectvid="./img/Udacity/project_video.mp4"
-path_projectvid_challenge="./img/Udacity/challenge_video.mp4"
-path_projectvid_challenge_hard="./img/Udacity/harder_challenge_video.mp4"
-example_img='./img/Udacity/image004.jpg'
-# debug0 --> fertiges Projekt
-# debug1 --> Nach Perspektiv Transformation 
-# debug2 --> Nach Thresholding
-# debug3 --> Segmentation der Fahrspuren
-# debug4 --> Polynom in Bird View reingelegt
-# debug5 --> OHNE line smoothing
-debug=0
+path_projectvid = "./img/Udacity/project_video.mp4"
+path_projectvid_challenge = "./img/Udacity/challenge_video.mp4"
+path_projectvid_challenge_hard = "./img/Udacity/harder_challenge_video.mp4"
+example_img = './img/Udacity/image004.jpg'
+
+# Debug levels:
+# 0 = Final overlay only
+# 1 = After perspective transform
+# 2 = After thresholding
+# 3 = Lane segmentation view
+# 4 = Polynomial overlay in bird’s-eye view
+# 5 = No line smoothing
+debug = 0
+
 rundemo(input=path_projectvid)
 ```
 
-
+📽️ **Demo Video Result:**
 
 https://user-images.githubusercontent.com/72473553/177058761-0577e3f8-6b17-4079-9155-1e0c1034639f.mp4
 
+---
 
-
-## Angewandt auf Einzelbilder
-
+## 🖼️ Applied to Individual Images
 
 ```python
 """
-  # Funktion um Einzelbilder zu Verarbeiten
-  # Bilder mit beliebiger Taste weiterdrücken
+  # Function to process single images.
+  # Press any key to continue to the next image.
 """
 def detect(img, M, M_rev):
-    i = 1
-    img = cv.cvtColor(img, cv.COLOR_BGR2RGB) #Farbraum konvertieren
-    img = pipeline(img,i,M,M_rev) #Bild durch Pipeline für Erkennung
+    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)  # Convert to RGB
+    img = pipeline(img, M, M_rev)             # Run image through the pipeline
     return img
-    
-imgs = glob.glob('./img/Udacity/*.jpg') #Pfade zur allen Einzelbildern ermitteln 
-M,M_rev=calc_perspective() #Transformationsmatrizen berechnen (Hin- und Rücktransformation)
-
-#Für alle Bilder Erkennung durchführen und Bilder anzeigen
-global debug
-if debug ==0:
-  for i in range(0,len(imgs)):
-      rundemo(imgs[i])
 ```
-
 
 ```python
-# Anzeigen der Change Rate zwischen den berechneten Polynomen
-df= np.linspace(0,len(right),len(right))
-df2= np.linspace(0,len(left),len(left))
-plt.title("Linke Fahrspur Durchschnittlicher Koeffizientenfehler zwischen zwei Frames")
-plt.plot(df,left)
+# Get all image paths in the Udacity folder
+imgs = glob.glob('./img/Udacity/*.jpg')
+
+# Compute perspective transform matrices
+M, M_rev = calc_perspective()
+
+# Run lane detection on each image if debug mode is set to 0
+global debug
+if debug == 0:
+    for i in range(len(imgs)):
+        rundemo(imgs[i])
+```
+
+---
+
+## 📊 Polynomial Smoothing Visualization
+
+```python
+# Plot change rate in polynomial coefficients between frames
+df = np.linspace(0, len(right), len(right))
+df2 = np.linspace(0, len(left), len(left))
+
+plt.title("Left Lane - Avg. Polynomial Coefficient Change Between Frames")
+plt.plot(df2, left)
 plt.show()
-plt.title("Rechte Fahrspur Durchschnittlicher Koeffizientenfehler zwischen zwei Frames")
-plt.plot(df2,right)
+
+plt.title("Right Lane - Avg. Polynomial Coefficient Change Between Frames")
+plt.plot(df, right)
 plt.show()
 ```
 
+### 📈 Sample Output:
 
-Linke Fahrspur Durchschnittlicher Koeffizientenfehler zwischen zwei Frames:    
-![png](Ressources/output_33_0.png)
-    
+**Left Lane – Average Coefficient Change:**
+![Left Lane Smoothing Graph](Ressources/output_33_0.png)
 
+**Right Lane – Average Coefficient Change:**
+![Right Lane Smoothing Graph](Ressources/output_33_1.png)
 
+---
 
-Rechte Fahrspur Durchschnittlicher Koeffizientenfehler zwischen zwei Frames:    
-![png](Ressources/output_33_1.png)
-    
-## Contributing
-* Andrik Seeger
-* Eike Wobken
-* Tom Schubert
+## 👥 Additional Contributors
+
+* **Eike Wobken**
+* **Tom Schubert**
+
+---
