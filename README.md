@@ -803,9 +803,13 @@ plt.show()
 ### 📈 Sample Output:
 
 **Left Lane – Average Coefficient Change:**
+
 ![Left Lane Smoothing Graph](Ressources/output_33_0.png)
 
+
+
 **Right Lane – Average Coefficient Change:**
+
 ![Right Lane Smoothing Graph](Ressources/output_33_1.png)
 
 ---
