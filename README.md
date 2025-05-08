@@ -818,5 +818,3 @@ plt.show()
 
 * **Eike Wobken**
 * **Tom Schubert**
-
----
